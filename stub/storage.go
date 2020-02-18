@@ -2,11 +2,14 @@ package stub
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"path/filepath"
 	"reflect"
 	"regexp"
+	"strconv"
 	"sync"
 
 	"github.com/lithammer/fuzzysearch/fuzzy"
@@ -180,18 +183,21 @@ func contains(expect, actual map[string]interface{}) bool {
 
 func matches(expect, actual map[string]interface{}) bool {
 	for keyExpect, valueExpect := range expect {
-		valueExpectString, ok := valueExpect.(string)
-		if !ok {
-			return false
-		}
-		actualvalue, ok := actual[keyExpect].(string)
-		if !ok {
+		valueExpectString, err := tryConvertValue(valueExpect)
+		if err != nil {
+			log.Println(err)
 			return false
 		}
 
-		match, err := regexp.Match(valueExpectString, []byte(actualvalue))
+		actualValue, err := tryConvertValue(actual[keyExpect])
 		if err != nil {
-			log.Println("Error on matching regex %s with %s error:%v", valueExpectString, actualvalue, err)
+			log.Println(err)
+			return false
+		}
+
+		match, err := regexp.Match(valueExpectString, []byte(actualValue))
+		if err != nil {
+			log.Printf("Error on matching regex %s with %s error:%v", valueExpectString, actualValue, err)
 		}
 
 		if !match {
@@ -215,20 +221,57 @@ func readStubFromFile(path string) {
 		return
 	}
 
-	for _, file := range files {
-		byt, err := ioutil.ReadFile(path + "/" + file.Name())
+	for i := range files {
+		if files[i].IsDir() {
+			readStubFromFile(filepath.Join(path, files[i].Name()))
+			continue
+		}
+
+		byt, err := ioutil.ReadFile(path + "/" + files[i].Name())
 		if err != nil {
-			log.Printf("Error when reading file %s. %v. skipping...", file.Name(), err)
+			log.Printf("Error when reading file %s. %v. skipping...", files[i].Name(), err)
 			continue
 		}
 
 		stub := new(Stub)
 		err = json.Unmarshal(byt, stub)
 		if err != nil {
-			log.Printf("Error when reading file %s. %v. skipping...", file.Name(), err)
+			log.Printf("Error when reading file %s. %v. skipping...", files[i].Name(), err)
 			continue
 		}
 
 		storeStub(stub)
 	}
+}
+
+func tryConvertValue(val interface{}) (string, error) {
+	if str, ok := val.(string); ok {
+		return str, nil
+	}
+
+	if vInt, ok := val.(int); ok {
+		return strconv.FormatInt(int64(vInt), 10), nil
+	}
+
+	if vInt64, ok := val.(int64); ok {
+		return strconv.FormatInt(vInt64, 10), nil
+	}
+
+	if vInt32, ok := val.(int32); ok {
+		return strconv.FormatInt(int64(vInt32), 10), nil
+	}
+
+	if vFloat32, ok := val.(float32); ok {
+		return strconv.FormatFloat(float64(vFloat32), 'f', 5, 32), nil
+	}
+
+	if vFloat64, ok := val.(float64); ok {
+		return strconv.FormatFloat(vFloat64, 'f', 5, 64), nil
+	}
+
+	if vBool, ok := val.(bool); ok {
+		return strconv.FormatBool(vBool), nil
+	}
+
+	return "", errors.New("was not possible do infer a string representation for the value")
 }

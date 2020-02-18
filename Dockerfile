@@ -28,11 +28,11 @@ RUN mv /protobuf-repo/src/ /protobuf/
 
 RUN rm -rf /protobuf-repo
 
-RUN mkdir -p /go/src/github.com/tokopedia/gripmock
+RUN mkdir -p /src/gripmock
 
-COPY . /go/src/github.com/tokopedia/gripmock
+COPY . /src/gripmock
 
-WORKDIR /go/src/github.com/tokopedia/gripmock/protoc-gen-gripmock
+WORKDIR /src/gripmock/protoc-gen-gripmock
 
 RUN packr2
 
@@ -41,7 +41,7 @@ RUN go install -v
 
 RUN packr2 clean
 
-WORKDIR /go/src/github.com/tokopedia/gripmock
+WORKDIR /src/gripmock
 
 # install gripmock
 RUN go install -v

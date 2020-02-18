@@ -71,7 +71,7 @@ For our `hello` service example we put stub with below text:
 ```
 
 ### Static stubbing
-You could initialize gripmock with stub json files and provide the path using `--stub` argument. For example you may 
+You could initialize gripmock with stub json files and provide the path using `--stub` argument, it will be scanned recursively. For example you may 
 mount  your stub file in `/mystubs` folder then mount it to docker like
  
  `docker run -p 4770:4770 -p 4771:4771 -v /mypath:/proto -v /mystubs:/stub tkpd/gripmock --stub=/stub /proto/hello.proto`
@@ -124,7 +124,8 @@ Input matching has 3 rules to match an input. which is **equals**,**contains** a
 }
 ```
 
-**matches** using regex for matching fields expectation. example:
+**matches** using regex for matching fields expectation possible value types: `string`, `int`, `int32`, `int64`, 
+`float32`, `float64`, `bool`, example:
 
 ```
 {
